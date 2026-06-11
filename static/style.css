@@ -1,0 +1,26 @@
+body{
+    background-color: #050816;
+    color: white;
+}
+
+.card:hover{
+    box-shadow: 0 0 25px cyan;
+    transform: scale(1.03);
+    transition: 0.3s;
+}
+
+/* aqedan aris navbari */
+.navbar {
+    background-color: #050816;
+}
+.navbar::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  /* 24-xazshi aris am xazis ferebi da boloebi */
+  background: linear-gradient(90deg, transparent, #3b82f6, #8b5cf6, #3b82f6, transparent);
+  box-shadow: 0 0 15px #3b82f6;
+}

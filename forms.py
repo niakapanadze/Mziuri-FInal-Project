@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms.fields import StringField, PasswordField, IntegerField, RadioField, SubmitField, SelectField
+from wtforms.fields import StringField, PasswordField, IntegerField, RadioField, SubmitField, SelectField, TextAreaField
 from wtforms.validators import DataRequired, EqualTo, Length
 from flask_wtf.file import FileField, FileAllowed, FileSize
 
@@ -66,3 +66,7 @@ class PlanetForm(FlaskForm):
     details = StringField("Enter Planet Details", validators = [DataRequired()])
 
     submit = SubmitField("Save this planet")
+
+class ReviewForm(FlaskForm):
+    text = TextAreaField("Write your review here:", validators = [DataRequired()])
+    submit = SubmitField("Submit")

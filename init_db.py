@@ -1,5 +1,5 @@
 from ext import app, db
-from models import Planet, User
+from models import Planet, User, Review
 
 with app.app_context():
     # db.drop_all()  # წაშალე ყველა ცხრილი რაც კი ბაზაში არის

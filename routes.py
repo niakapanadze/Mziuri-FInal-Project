@@ -1,8 +1,8 @@
 from models import Planet, User, Review
 from ext import app, db
-from forms import RegisterForm, LoginForm, TravelForm, PlanetForm
-from flask import Flask, render_template, redirect, flash
-from flask_login import login_user, logout_user, login_required
+from forms import RegisterForm, LoginForm, TravelForm, PlanetForm, ReviewForm
+from flask import Flask, render_template, redirect, flash, url_for, request
+from flask_login import login_user, logout_user, login_required, current_user
 from os import path
 
 
@@ -17,7 +17,7 @@ def login():
     form = LoginForm()
     if form.validate_on_submit():
         user = User.query.filter(User.username == form.username.data).first()
-        if user and user.password == form.password.data:
+        if user and user.check_password(form.password.data):
             login_user(user)
             flash(f"Login successful for {user.username}!")
             return redirect("/")
@@ -44,15 +44,45 @@ def profile(profile_id):
     return render_template("profile.html", profile=profile)
 
 
-@app.route("/planet/<int:planet_id>")
-def view_planet_details(planet_id):
+@app.route("/planet/<int:planet_id>", methods=["GET", "POST"])
+@app.route("/planet/<int:planet_id>/edit/<int:edit_id>", methods=["GET", "POST"])
+def view_planet_details(planet_id, edit_id=None):
     planet = Planet.query.get(planet_id)
-    if planet:
-        reviews = Review.query.filter(Review.planet_id == planet_id).all()
-        return render_template("planet_details.html",
-                               planet=planet,
-                               reviews=reviews)
-    return "Planet Not Found"
+    if not planet:
+        return "Planet Not Found"
+
+    form = ReviewForm()
+    editing_review = None
+    # vamowmeb tu review-s editi unda
+    if edit_id:
+        editing_review = Review.query.get_or_404(edit_id)
+        # aq veubnebi ro admini ar xar da gadi aqedano
+        if current_user.username != editing_review.user and current_user.username != 'admin':
+            flash("Permission denied!")
+            return redirect(url_for("view_planet_details", planet_id=planet_id))
+
+        if request.method == "GET":
+            form.text.data = editing_review.text
+
+    if form.validate_on_submit():
+        if not current_user.is_authenticated:
+            flash("You must be logged in to leave a review!")
+            return redirect("/login")
+
+        if edit_id:
+            # aq shudzlia editi
+            editing_review.text = form.text.data
+            flash("Changes Saved!")
+        else:
+            new_review = Review(text=form.text.data, planet_id=planet_id, user=current_user.username)
+            db.session.add(new_review)
+            flash("Review posted successfully!")
+
+        db.session.commit()
+        return redirect(url_for("view_planet_details", planet_id=planet_id))
+
+    reviews = Review.query.filter(Review.planet_id == planet_id).all()
+    return render_template("planet_details.html", planet=planet, reviews=reviews, form=form, edit_id=edit_id)
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
@@ -200,3 +230,20 @@ def delete_planet(planet_id):
     # db.session.delete(planet) db.session.commit() --- igivea rac:
     planet.delete()
     return redirect("/")
+
+
+@app.route("/delete_review/<int:review_id>")
+@login_required  # tu ar arid da-login-ebuli egreve mag gverdze gadaiyvans
+def delete_review(review_id):
+    review = Review.query.get_or_404(review_id)
+
+    # aq vamowmeb avtori an admini tua
+    if current_user.username != review.user and current_user.username != 'admin':
+        flash("You do not have permission to delete this review!")
+        return redirect(url_for("home"))
+
+    planet_id = review.planet_id
+    db.session.delete(review)
+    db.session.commit()
+    flash("Review successfully deleted!")
+    return redirect(url_for("view_planet_details", planet_id=planet_id))

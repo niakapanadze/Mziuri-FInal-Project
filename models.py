@@ -1,6 +1,8 @@
+from datetime import datetime
 from ext import db, login_manager
-from sqlalchemy import ForeignKey
+from sqlalchemy import ForeignKey, func
 from flask_login import UserMixin
+from werkzeug.security import generate_password_hash, check_password_hash
 
 class BaseModel:
     def create(self):
@@ -37,13 +39,26 @@ class User(db.Model, BaseModel, UserMixin):
     image = db.Column(db.String(), default = "pic.jpg")
     role = db.Column(db.String(), default = "Guest")
 
+    def __init__(self, username, password, age = None, gender = None, image = "pic.jpg", role = "Guest"):
+        self.username = username
+        self.password = generate_password_hash(password)
+        self.age = age
+        self.gender = gender
+        self.image = image
+        self.role = role
+
+    def check_password(self, password):
+        return check_password_hash(self.password, password)
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
 class Review(db.Model, BaseModel):
-    __tablename__ = "reviews"
+    __tablename__ = "planet_reviews"
 
     id = db.Column(db.Integer(), primary_key = True)
     text = db.Column(db.String(), nullable = False)
+    date_created = db.Column(db.DateTime(), nullable = False, default = func.now())
     planet_id = db.Column(ForeignKey("planets.id"))
+    user = db.Column(db.String(), nullable = False)
